@@ -9,8 +9,8 @@ _BASE_DIR = Path(__file__).resolve().parent
 
 def get_db_path() -> Path:
     """
-    Путь к файлу БД: переменная окружения DB_PATH, если задана,
-    иначе finance.db рядом с этим файлом.
+    Database file path: the DB_PATH environment variable if set,
+    otherwise finance.db next to this file.
     """
     env_path = os.environ.get("DB_PATH")
     return Path(env_path) if env_path else _BASE_DIR / "finance.db"
@@ -18,15 +18,15 @@ def get_db_path() -> Path:
 
 def init_db():
     """
-    Готовит базу к работе: создаёт таблицу, если её нет,
-    и добавляет колонку type, если её ещё нет (миграция).
-    Вызывается один раз при старте бота.
+    Prepares the database: creates the table if missing
+    and adds the type column if it does not exist yet (migration).
+    Called once when the bot starts.
     """
     with closing(sqlite3.connect(get_db_path())) as conn:
         cursor = conn.cursor()
 
-        # 1) Создаём таблицу, если её вообще нет.
-        #    Для новых установок сразу с колонкой type.
+        # 1) Create the table if it does not exist at all.
+        #    New installs get the type column right away.
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS expenses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,15 +38,15 @@ def init_db():
             )
         ''')
 
-        # 2) Миграция для старых баз, где колонки type ещё нет.
-        #    PRAGMA table_info возвращает список колонок таблицы.
-        #    Если среди них нет 'type' — добавляем её.
+        # 2) Migration for old databases that lack the type column.
+        #    PRAGMA table_info returns the list of table columns.
+        #    If 'type' is not among them, add it.
         cursor.execute("PRAGMA table_info(expenses)")
-        columns = [row[1] for row in cursor.fetchall()]  # row[1] — имя колонки
+        columns = [row[1] for row in cursor.fetchall()]  # row[1] is the column name
         if "type" not in columns:
             cursor.execute("ALTER TABLE expenses ADD COLUMN type TEXT DEFAULT 'expense'")
 
-        # 3) Старым строкам (у которых type = NULL) проставляем 'expense'.
+        # 3) Set 'expense' for old rows (where type = NULL).
         cursor.execute("UPDATE expenses SET type = 'expense' WHERE type IS NULL")
 
         conn.commit()
@@ -55,9 +55,9 @@ def init_db():
 def add_operation(user_id: int, amount: float, category: str,
                   date_str: str, op_type: str):
     """
-    Универсальная запись операции.
-    op_type — 'expense' для расхода, 'income' для дохода.
-    Раньше функция называлась add_expense; теперь она про операции вообще.
+    Universal operation recorder.
+    op_type is 'expense' for an expense, 'income' for income.
+    The function used to be called add_expense; now it handles operations in general.
     """
     with closing(sqlite3.connect(get_db_path())) as conn:
         cursor = conn.cursor()
@@ -71,26 +71,26 @@ def add_operation(user_id: int, amount: float, category: str,
 
 def add_expense(user_id: int, amount: float, category: str, date_str: str):
     """
-    Обёртка над add_operation: пишет расход.
-    Хендлеры расхода вызывают именно её — читается понятнее.
+    Wrapper around add_operation: records an expense.
+    The expense handlers call exactly this one - it reads more clearly.
     """
     add_operation(user_id, amount, category, date_str, "expense")
 
 
 def add_income(user_id: int, amount: float, category: str, date_str: str):
     """
-    Обёртка над add_operation: пишет доход.
+    Wrapper around add_operation: records income.
     """
     add_operation(user_id, amount, category, date_str, "income")
 
 
 def get_monthly_operations(user_id: int, op_type: str = None):
     """
-    Возвращает операции пользователя за текущий месяц.
-    op_type: 'expense' | 'income' | None (без фильтра).
-    Возвращает кортежи (amount, category, date, type).
+    Returns the user's operations for the current month.
+    op_type: 'expense' | 'income' | None (no filter).
+    Returns tuples (amount, category, date, type).
     """
-    # Меняем формат на 'YYYY-MM', чтобы захватить весь текущий месяц
+    # Use the 'YYYY-MM' format to capture the whole current month
     current_month = datetime.now().strftime('%Y-%m')
 
     query = """
@@ -98,7 +98,7 @@ def get_monthly_operations(user_id: int, op_type: str = None):
             FROM expenses
             WHERE user_id = ? AND date LIKE ? 
             """
-    # Ищем все записи, дата которых начинается с текущего года и месяца (например, '2026-10%')
+    # Find all records whose date starts with the current year and month (e.g. '2026-10%')
     params = [user_id, f"{current_month}%"]
 
     if op_type is not None:

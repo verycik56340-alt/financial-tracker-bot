@@ -55,7 +55,7 @@ INCOME_CATEGORIES = frozenset(
     for button in row
 )
 
-#Приветствие
+# Greeting
 @user.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
@@ -64,7 +64,7 @@ async def cmd_start(message: Message, state: FSMContext):
                          reply_markup=kb.menu)
 
 
-#Отмена текущего сценария (работает в любом состоянии)
+# Cancel the current scenario (works in any state)
 @user.message(Command("cancel"))
 async def cmd_cancel(message: Message, state: FSMContext):
     await state.clear()
@@ -72,13 +72,13 @@ async def cmd_cancel(message: Message, state: FSMContext):
 
 
 
-# Запрашиваем сумму расхода
+# Ask for the expense amount
 @user.message(F.text == "Add expense")
 async def cmd_add_expense(message: Message, state: FSMContext):
     await message.answer("Enter the amount: ")
     await state.set_state(Form.waiting_for_amount_expense)
 
-#Сохраняем сумму и запрашиваем категорию
+# Save the amount and ask for the category
 @user.message(Form.waiting_for_amount_expense)
 async def process_amount_expense(message: Message, state: FSMContext):
     amount = parse_amount(message.text)
@@ -94,7 +94,7 @@ async def process_amount_expense(message: Message, state: FSMContext):
     )
     await state.set_state(Form.waiting_for_category_expense)
 
-# Ловим нажатие на инлайн-кнопку в состоянии ожидания категории
+# Handle an inline button press while waiting for the category
 @user.callback_query(Form.waiting_for_category_expense, F.data.in_(EXPENSE_CATEGORIES))
 async def process_category_expense(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -120,7 +120,7 @@ async def process_category_expense(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("✅ The expense has been successfully saved to the database!")
     await state.clear()
 
-#Выводит историю опираций
+# Show the operation history
 @user.message(F.text == "History")
 async def show_monthly_report(message: Message):
     user_id = message.from_user.id
@@ -185,13 +185,13 @@ async def show_monthly_report(message: Message):
 
     await message.answer(report)
 
-#Запрашиваем сумму дохода
+# Ask for the income amount
 @user.message(F.text == "Add income")
 async def cmd_add_income(message: Message, state: FSMContext):
     await message.answer("Enter the amount: ")
     await state.set_state(Form.waiting_for_amount_income)
 
-#Сохраняем сумму дохода и запрашиваем категорию
+# Save the income amount and ask for the category
 @user.message(Form.waiting_for_amount_income)
 async def process_amount_income(message: Message, state: FSMContext):
     amount = parse_amount(message.text)
@@ -207,7 +207,7 @@ async def process_amount_income(message: Message, state: FSMContext):
     )
     await state.set_state(Form.waiting_for_category_income)
 
-# Ловим нажатие на инлайн-кнопку в состоянии ожидания категории дохода
+# Handle an inline button press while waiting for the income category
 @user.callback_query(Form.waiting_for_category_income, F.data.in_(INCOME_CATEGORIES))
 async def process_category_income(callback: CallbackQuery, state: FSMContext):
 
@@ -239,7 +239,7 @@ async def process_category_income(callback: CallbackQuery, state: FSMContext):
 async def echo(message: Message):
     await message.send_copy(chat_id=message.from_user.id)
 
-# Отстающие/чужие callback-кнопки: гасим "часики" понятным ответом
+# Stale/foreign callback buttons: dismiss the "spinner" with a clear answer
 @user.callback_query()
 async def process_outdated_callback(callback: CallbackQuery):
     await callback.answer("Outdated button", show_alert=False)
