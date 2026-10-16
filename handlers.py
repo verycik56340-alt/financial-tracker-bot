@@ -2,7 +2,7 @@ import math
 
 from aiogram import Router
 from aiogram.types import CallbackQuery
-from aiogram.filters.command import CommandStart
+from aiogram.filters.command import Command, CommandStart
 from datetime import datetime
 from aiogram import F
 from aiogram.fsm.context import FSMContext
@@ -46,9 +46,17 @@ def parse_amount(text) -> float | None:
 #Приветствие
 @user.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
+    await state.clear()
     user_name = message.from_user.first_name
     await message.answer(f"Hello {user_name}! I am your bot. Send me any message!",
                          reply_markup=kb.menu)
+
+
+#Отмена текущего сценария (работает в любом состоянии)
+@user.message(Command("cancel"))
+async def cmd_cancel(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Cancelled", reply_markup=kb.menu)
 
 
 
