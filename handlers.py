@@ -59,8 +59,8 @@ INCOME_CATEGORIES = frozenset(
 @user.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
-    user_name = message.from_user.first_name
-    await message.answer(f"Hello {user_name}! I am your bot. Send me any message!",
+    user_name = message.from_user.first_name if message.from_user else None
+    await message.answer(f"Hello {user_name or 'there'}! I am your bot. Send me any message!",
                          reply_markup=kb.menu)
 
 
@@ -100,7 +100,7 @@ async def process_category_expense(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-    await state.update_data(category=callback.data, date=current_time)
+    await state.update_data(category=callback.data)
 
     data = await state.get_data()
     amount_expense = data.get("amount_expense")
@@ -121,7 +121,7 @@ async def process_category_expense(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 #Выводит историю опираций
-@user.message(F.text == "Operation history")
+@user.message(F.text == "History")
 async def show_monthly_report(message: Message):
     user_id = message.from_user.id
     expenses = get_monthly_expenses(user_id)
@@ -186,7 +186,7 @@ async def show_monthly_report(message: Message):
     await message.answer(report)
 
 #Запрашиваем сумму дохода
-@user.message(F.text == "Adding Income")
+@user.message(F.text == "Add income")
 async def cmd_add_income(message: Message, state: FSMContext):
     await message.answer("Enter the amount: ")
     await state.set_state(Form.waiting_for_amount_income)
@@ -214,7 +214,7 @@ async def process_category_income(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-    await state.update_data(category=callback.data, date=current_time)
+    await state.update_data(category=callback.data)
 
     data = await state.get_data()
     amount_income = data.get("amount_income")

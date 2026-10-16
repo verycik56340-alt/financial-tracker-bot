@@ -3,8 +3,8 @@ from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton,
 
 menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="Adding Income")],
-        [KeyboardButton(text="Operation history"),
+        [KeyboardButton(text="Add income")],
+        [KeyboardButton(text="History"),
          KeyboardButton(text="Add expense")],
     ],
     resize_keyboard=True,
