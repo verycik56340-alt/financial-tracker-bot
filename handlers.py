@@ -60,7 +60,7 @@ INCOME_CATEGORIES = frozenset(
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     user_name = message.from_user.first_name if message.from_user else None
-    await message.answer(f"Hello {user_name or 'there'}! I am your bot. Send me any message!",
+    await message.answer(f"Hello {user_name or 'there'}! I help you track income and expenses!",
                          reply_markup=kb.menu)
 
 
