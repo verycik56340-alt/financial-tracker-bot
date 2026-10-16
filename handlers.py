@@ -43,6 +43,18 @@ def parse_amount(text) -> float | None:
         return None
     return round(value, 2)
 
+
+EXPENSE_CATEGORIES = frozenset(
+    button.callback_data
+    for row in kb.category_expense.inline_keyboard
+    for button in row
+)
+INCOME_CATEGORIES = frozenset(
+    button.callback_data
+    for row in kb.category_income.inline_keyboard
+    for button in row
+)
+
 #Приветствие
 @user.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
@@ -83,7 +95,7 @@ async def process_amount_expense(message: Message, state: FSMContext):
     await state.set_state(Form.waiting_for_category_expense)
 
 # Ловим нажатие на инлайн-кнопку в состоянии ожидания категории
-@user.callback_query(Form.waiting_for_category_expense)
+@user.callback_query(Form.waiting_for_category_expense, F.data.in_(EXPENSE_CATEGORIES))
 async def process_category_expense(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
@@ -196,7 +208,7 @@ async def process_amount_income(message: Message, state: FSMContext):
     await state.set_state(Form.waiting_for_category_income)
 
 # Ловим нажатие на инлайн-кнопку в состоянии ожидания категории дохода
-@user.callback_query(Form.waiting_for_category_income)
+@user.callback_query(Form.waiting_for_category_income, F.data.in_(INCOME_CATEGORIES))
 async def process_category_income(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
@@ -226,3 +238,8 @@ async def process_category_income(callback: CallbackQuery, state: FSMContext):
 @user.message()
 async def echo(message: Message):
     await message.send_copy(chat_id=message.from_user.id)
+
+# Отстающие/чужие callback-кнопки: гасим "часики" понятным ответом
+@user.callback_query()
+async def process_outdated_callback(callback: CallbackQuery):
+    await callback.answer("Outdated button", show_alert=False)
