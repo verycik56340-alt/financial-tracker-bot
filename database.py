@@ -1,7 +1,19 @@
+import os
 import sqlite3
+from contextlib import closing
 from datetime import datetime
+from pathlib import Path
 
-DB_NAME = "finance.db"
+_BASE_DIR = Path(__file__).resolve().parent
+
+
+def get_db_path() -> Path:
+    """
+    Путь к файлу БД: переменная окружения DB_PATH, если задана,
+    иначе finance.db рядом с этим файлом.
+    """
+    env_path = os.environ.get("DB_PATH")
+    return Path(env_path) if env_path else _BASE_DIR / "finance.db"
 
 
 def init_db():
@@ -10,7 +22,7 @@ def init_db():
     и добавляет колонку type, если её ещё нет (миграция).
     Вызывается один раз при старте бота.
     """
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(sqlite3.connect(get_db_path())) as conn:
         cursor = conn.cursor()
 
         # 1) Создаём таблицу, если её вообще нет.
@@ -47,7 +59,7 @@ def add_operation(user_id: int, amount: float, category: str,
     op_type — 'expense' для расхода, 'income' для дохода.
     Раньше функция называлась add_expense; теперь она про операции вообще.
     """
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(sqlite3.connect(get_db_path())) as conn:
         cursor = conn.cursor()
         cursor.execute(
             """INSERT INTO expenses (user_id, amount, category, date, type)
@@ -93,7 +105,7 @@ def get_monthly_operations(user_id: int, op_type: str = None):
         query += " AND type = ?"
         params.append(op_type)
 
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(sqlite3.connect(get_db_path())) as conn:
         cursor = conn.cursor()
         cursor.execute(query, params)
         return cursor.fetchall()
