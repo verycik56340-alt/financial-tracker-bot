@@ -1,3 +1,5 @@
+import math
+
 from aiogram import Router
 from aiogram.types import CallbackQuery
 from aiogram.filters.command import CommandStart
@@ -18,6 +20,29 @@ class Form(StatesGroup):
     waiting_for_category_expense  = State()
     waiting_for_category_income = State()
 
+MAX_AMOUNT = 1_000_000_000
+AMOUNT_PROMPT = (
+    "Please enter a positive amount as a number up to 1 000 000 000, "
+    "for example 12.50 or 12,50."
+)
+
+
+def parse_amount(text) -> float | None:
+    """
+    Validates user input as a positive monetary amount.
+    Accepts a dot or a comma as the decimal separator, rounds to 2 decimals.
+    Returns None for anything that is not a valid amount.
+    """
+    if not text:
+        return None
+    try:
+        value = float(text.strip().replace(",", "."))
+    except ValueError:
+        return None
+    if not math.isfinite(value) or value <= 0 or value > MAX_AMOUNT:
+        return None
+    return round(value, 2)
+
 #Приветствие
 @user.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
@@ -36,11 +61,12 @@ async def cmd_add_expense(message: Message, state: FSMContext):
 #Сохраняем сумму и запрашиваем категорию
 @user.message(Form.waiting_for_amount_expense)
 async def process_amount_expense(message: Message, state: FSMContext):
-    if not message.text or not message.text.isdigit():
-        await message.answer("Please enter the correct amount in numbers!")
+    amount = parse_amount(message.text)
+    if amount is None:
+        await message.answer(AMOUNT_PROMPT)
         return
 
-    await state.update_data(amount_expense=message.text)
+    await state.update_data(amount_expense=amount)
 
     await message.answer(
         "Great! Now select a category:",
@@ -57,7 +83,11 @@ async def process_category_expense(callback: CallbackQuery, state: FSMContext):
     await state.update_data(category=callback.data, date=current_time)
 
     data = await state.get_data()
-    amount_expense = float(data.get("amount_expense"))
+    amount_expense = data.get("amount_expense")
+    if amount_expense is None:
+        await callback.answer("Outdated button", show_alert=False)
+        await state.clear()
+        return
     category_expense = data.get("category")
 
     add_expense(
@@ -144,11 +174,12 @@ async def cmd_add_income(message: Message, state: FSMContext):
 #Сохраняем сумму дохода и запрашиваем категорию
 @user.message(Form.waiting_for_amount_income)
 async def process_amount_income(message: Message, state: FSMContext):
-    if not message.text or not message.text.isdigit():
-        await message.answer("Please enter the correct amount in numbers!")
+    amount = parse_amount(message.text)
+    if amount is None:
+        await message.answer(AMOUNT_PROMPT)
         return
 
-    await state.update_data(amount_income=message.text)
+    await state.update_data(amount_income=amount)
 
     await message.answer(
         "Great! Now select a category:",
@@ -166,7 +197,11 @@ async def process_category_income(callback: CallbackQuery, state: FSMContext):
     await state.update_data(category=callback.data, date=current_time)
 
     data = await state.get_data()
-    amount_income= float(data.get("amount_income"))
+    amount_income = data.get("amount_income")
+    if amount_income is None:
+        await callback.answer("Outdated button", show_alert=False)
+        await state.clear()
+        return
     category_income = data.get("category")
 
     add_income(
